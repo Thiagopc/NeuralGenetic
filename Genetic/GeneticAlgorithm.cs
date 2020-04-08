@@ -3,123 +3,115 @@ using System.Collections.Generic;
 using System.Linq;
 using rexgame.NeuralNetwork;
 
-namespace rexgame.Genetic
+namespace NeuralGenetic.Genetic
 {
-
-    public struct Point
+    public  class GeneticAlgorithm
     {
-        public int Indice { get; set; }
-        public int Value { get; set; }
-    }
-    public class GeneticAlgorithm
-    {
-        private int _sizeGenes;
+        private readonly IFitness _fitness;
+        private readonly int _taxcrossover;
+        private readonly int _taxMutation;
         private readonly int _epoch;
-        private static Random _random = new Random();
+        public List<Genome> _genome;
 
-        public List<MultiLayerPerceptron> _gene;
-        public List<Point> _point = new List<Point>();
-        public GeneticAlgorithm(int sizeGene, bool whileNotFind, int epoch = 1000)
+        private static Random _random;
+
+        public GeneticAlgorithm(int population, int sizeGenome,
+        int crossover, int percentMutantion, IFitness _fitness, int poch = 100)
         {
-            _gene = new List<MultiLayerPerceptron>();
-            this._epoch = epoch;
+            _genome = new List<Genome>();
+            this._fitness = _fitness;
+            this._taxcrossover = Convert.ToInt32( (crossover / 100.0) * population);
+            this._taxMutation = percentMutantion;
+            this._epoch = poch;
 
-            for (int i = 0; i < sizeGene; i++)
+            if (_random == null)
+                _random = new Random();
+
+            for (int populationController = 0; populationController < population; populationController++)
             {
-
-                this._gene.Add(new MultiLayerPerceptron(2, 3, 3, 4, 5));
-            }
-
-
-
-
-            this._sizeGenes = this._gene.FirstOrDefault().GetAllValues().Count;
-        }
-
-
-        public void Calculate()
-        {
-
-            int pontos = 0;
-            for (int i = 0; i < this._gene.Count; i++)
-            {
-
-                var result = this._gene[i].Calc(1, 1);
-
-                if (result <= 0.5m)
-                    pontos++;
-
-                result = this._gene[i].Calc(1, 0);
-                if (result > 0.5m)
-                    pontos++;
-
-                result = this._gene[i].Calc(0, 1);
-                if (result > 0.5m)
-                    pontos++;
-
-                result = this._gene[i].Calc(0, 0);
-                if (result <= 0.5m)
-                    pontos++;
-
-
-                this._point.Add(new Point()
+                this._genome.Add(new Genome());
+                for (int size = 0; size < sizeGenome; size++)
                 {
-                    Indice = i,
-                    Value = pontos
+                    this._genome[populationController].Genomes.Add(this.getRandom());
+                }
 
-                });
-                pontos = 0;
             }
 
         }
 
+
+
+
+        private decimal getRandom()
+        {
+            var number = _random.Next(0,10) / 10.0m;
+            number *= _random.Next(2) == 1 ? 1 : -1;
+            return number;
+        }
+
+        private void RunNetwork()
+        {
+
+            for (int population = 0; population < this._genome.Count; population++)
+            {
+
+                var genome = this._genome[population];
+                genome.Point = this._fitness.Function(genome.Genomes);
+
+            }
+
+            this._genome = this._genome.OrderByDescending(c => c.Point).ToList();
+        }
+
+
+
+        private void CrosSover()
+        {
+
+            int halfGenmoe = this._genome.FirstOrDefault().Genomes.Count() / 2;
+            bool mutation = this._taxMutation <= _random.Next(0, this._taxMutation);
+
+            List<decimal> newGenome = new List<decimal>();
+            for (int i = 0; i < this._taxcrossover; i++)
+            {
+
+                var num = _random.Next(3,this._genome.Count - 1);
+                var first = this._genome[num].Genomes.GetRange(0, halfGenmoe);
+                var second = this._genome[_random.Next(this._genome.Count - 1)].Genomes.GetRange(halfGenmoe, ( (this._genome[0].Genomes.Count) - halfGenmoe ));
+
+                second.AddRange(first);
+                this._genome[num].Genomes = second.ToList();
+
+                 
+            }
+
+
+        }
 
 
         public void Run()
         {
+            this.RunNetwork();
 
-            for (int i = 0; i < this._epoch; i++)
-            {
-                this.Mutation();
-                this.Calculate();
+            for(int i =0; i < _epoch; i++){
+                this.CrosSover();
+                this.RunNetwork();
             }
 
-
-
         }
+    }
 
-        private void Mutation()
-        {
-            int sizeGene = this._gene.FirstOrDefault().GetAllValues().Count;
-            int dezporcent =Convert.ToInt32( this._gene.Count * 0.10);
-            int metade = Convert.ToInt32(sizeGene /2);
-            int target = 5;
-            List<decimal> pesos = new List<decimal>();
-            for(int i=0; i < dezporcent; i++){
 
-                var um = _random.Next(3,this._gene.Count);
-                var dois = _random.Next(3,this._gene.Count);
-                target = um;
-                var pt1 = this._gene[um].GetAllValues().GetRange(0,metade);
-                var pt2 = this._gene[dois].GetAllValues().GetRange(metade,metade);
-                
 
-                for(int j =0; j < sizeGene; j++){
+    public class Genome
+    {
+        public List<decimal> Genomes { get; set; } = new List<decimal>();
+        public int Point { get; set; }
 
-                    
-                    if(j < metade){                        
-                        pesos.Add(pt1[j]);
-                    }else
-                    {                        
-                        pesos.Add(pt2[ j - metade]);
-                    }
+    }
 
-                }
-            }
-
-            this._gene[target].SetWeights(pesos);
-            pesos.Clear();
-        }
-
+    public interface IFitness
+    {
+        int Function(List<decimal> genome);
     }
 }

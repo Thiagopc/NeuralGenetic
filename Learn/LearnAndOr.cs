@@ -4,13 +4,13 @@ using rexgame.NeuralNetwork;
 
 namespace NeuralGenetic.Learn
 {
-    public class LearnAnd : IFitness
+    public class LearnAndOr : IFitness
     {
 
         public int Size{get{return this._neural.GetAllValues().Count;}}
         private MultiLayerPerceptron _neural;
 
-        public LearnAnd(int inputSize, int layer, params int[] neuronParams){
+        public LearnAndOr(int inputSize, int layer, params int[] neuronParams){
             this._neural = new MultiLayerPerceptron(inputSize, layer, neuronParams);
         }
 
