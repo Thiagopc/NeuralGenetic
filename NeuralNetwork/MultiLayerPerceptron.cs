@@ -125,6 +125,7 @@ namespace rexgame.NeuralNetwork
 
 
 
+
         public MultiLayerPerceptron(int inputSize, int layerSize, params int[] neuronPerLayer)
         {
             this._bias = this.getWeight();
